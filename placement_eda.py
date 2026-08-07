@@ -1,7 +1,7 @@
 import os
 import matplotlib
+matplotlib.use("Agg")
 
-import args
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -101,8 +101,230 @@ def run_eda() -> dict:
     _save("placement_status.png")
     charts.append("placement_status.png")
 
+    # 6. NUMERIC DISTRIBUTION
+    print("\n" + "=" * 80)
+    print("6. NUMERIC DISTRIBUTION")
+    print("=" * 80)
+
+    hist_cols = [
+        "CGPA",
+        "Attendencepercent",
+        "AptitudeTestScore",
+        "softSkillsRating",
+        "CodingTestScore",
+        "MockInterviewScore"
+    ]
+
+    hist_cols = [c for c in hist_cols if c in data.columns]
+
+    fig = data[hist_cols].hist(figsize=(14, 10), bins=20)
+
+    plt.tight_layout()
+    plt.savefig(_chart_path("numeric_distribution.png"), dpi=100)
+    plt.close("all")
+
+    charts.append("numeric_distribution.png")
+
+    plt.figure(dpi=125)
+    sns.histplot(data["CGPA"], kde=True)
+    plt.axvline(x=np.mean(data["CGPA"]), color="green", linestyle="--", label="Mean")
+    plt.legend()
+    plt.title("CGPA Distribution with Mean")
+    _save("cgpa_distribution.png")
+    charts.append("cgpa_distribution.png")
+
+    # 7. OUTLIER DETECTION
+    print("\n" + "=" * 80)
+    print("7. OUTLIER DETECTION")
+    print("=" * 80)
+
+    box_cols = [
+        "CGPA",
+        "Attendencepercent",
+        "AptitudeTestScore",
+        "softSkillsRating",
+        "CodingTestScore",
+        "MockInterviewScore",
+        "Salary Package"
+    ]
+
+    box_cols = [c for c in box_cols if c in data.columns]
+
+    plt.figure(figsize=(14, 6))
+    sns.boxplot(data=data[box_cols], color="skyblue")
+
+    plt.title("Boxplots of Numerical Features", fontsize=14)
+    plt.xticks(rotation=45)
+    _save("outlier_detection.png")
+    charts.append("outlier_detection.png")
+
+    # 8. CORRELATION ANALYSIS
+    print("\n" + "=" * 80)
+    print("8. CORRELATION ANALYSIS")
+    print("=" * 80)
+
+    corr = data.select_dtypes(include=[np.number]).corr()
+    print(np.round(corr, 2))
+
+    plt.figure(figsize=(16, 12), dpi=100)
+    sns.heatmap(
+        np.round(corr, 2),
+        annot=True,
+        cmap="coolwarm",
+        fmt=".2f"
+    )
+    plt.title("Correlation Heatmap")
+    _save("correlation_heatmap.png")
+    charts.append("correlation_heatmap.png")
+
+    # 9. RELATIONSHIP PLOTS
+    print("\n" + "=" * 80)
+    print("9. RELATIONSHIP PLOTS")
+    print("=" * 80)
+
+    plt.figure(figsize=(8, 5))
+    sns.regplot(x="CGPA", y="Salary Package", data=data, scatter_kws={"alpha": 0.6})
+    plt.title("CGPA vs Salary Package")
+    _save("cgpa_salary.png")
+    charts.append("cgpa_salary.png")
+
+    plt.figure(figsize=(8, 5))
+    sns.regplot(x="AptitudeTestScore", y="CodingTestScore", data=data, scatter_kws={"alpha": 0.6})
+    plt.title("Aptitude Test Score vs Coding Test Score")
+    _save("aptitude_coding.png")
+    charts.append("aptitude_coding.png")
+
+    # 10. CATEGORICAL FEATURE COUNTS
+    print("\n" + "=" * 80)
+    print("10. CATEGORICAL FEATURE COUNTS")
+    print("=" * 80)
+
+    cat_cols = [
+        "Gender",
+        "City",
+        "CollegeTier",
+        "Stream",
+        "Specialisation",
+        "Hostel",
+        "HistoryOfBacklogs",
+        "CGPA_Tier"
+    ]
+
+    cat_cols = [c for c in cat_cols if c in data.columns]
+
+    for col in cat_cols:
+        plt.figure(figsize=(8, 5))
+        sns.countplot(x=col, data=data)
+        plt.xticks(rotation=45)
+        plt.title(f"{col} Count")
+
+        filename = f"{col}_count.png"
+        _save(filename)
+        charts.append(filename)
+
+        # 11. GENDER VS PLACEMENT STATUS
+        print("\n" + "=" * 80)
+        print("11. GENDER VS PLACEMENT STATUS")
+        print("=" * 80)
+
+        plt.figure(figsize=(8, 5))
+        sns.countplot(x="Gender", hue="PlacementStatus", data=data)
+        plt.title("Gender vs Placement Status")
+        _save("gender_vs_placement.png")
+        charts.append("gender_vs_placement.png")
+
+        # 12. COLLEGE TIER / STREAM VS PLACEMENT STATUS
+        print("\n" + "=" * 80)
+        print("12. COLLEGE TIER / STREAM VS PLACEMENT STATUS")
+        print("=" * 80)
+
+        plt.figure(figsize=(8, 5))
+        sns.countplot(x="CollegeTier", hue="PlacementStatus", data=data)
+        plt.title("College Tier vs Placement Status")
+        _save("collegetier_vs_placement.png")
+        charts.append("collegetier_vs_placement.png")
+
+        plt.figure(figsize=(10, 5))
+        sns.countplot(x="Stream", hue="PlacementStatus", data=data)
+        plt.xticks(rotation=45)
+        plt.title("Stream vs Placement Status")
+        _save("stream_vs_placement.png")
+        charts.append("stream_vs_placement.png")
+
+        # 13. SGPA TREND ACROSS SEMESTERS
+        print("\n" + "=" * 80)
+        print("13. SGPA TREND ACROSS SEMESTERS")
+        print("=" * 80)
+
+        sgpa_cols = [
+            "SGPA_Sem1",
+            "SGPA_Sem2",
+            "SGPA_Sem3",
+            "SGPA_Sem4",
+            "SGPA_Sem5",
+            "SGPA_Sem6",
+            "SGPA_Sem7",
+            "SGPA_Sem8"
+        ]
+
+        sgpa_cols = [c for c in sgpa_cols if c in data.columns]
+
+        avg_sgpa = data[sgpa_cols].mean()
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(sgpa_cols, avg_sgpa, marker="o")
+        plt.xlabel("Semester")
+        plt.ylabel("Average SGPA")
+        plt.title("Average SGPA Across Semesters")
+        plt.grid(True)
+        _save("sgpa_trend.png")
+        charts.append("sgpa_trend.png")
+
+        # 14. SALARY PACKAGE ANALYSIS
+        print("\n" + "=" * 80)
+        print("14. SALARY PACKAGE ANALYSIS")
+        print("=" * 80)
+
+        placed = data[data["PlacementStatus"] == 1]
+
+        plt.figure(figsize=(8, 5))
+        sns.histplot(placed["Salary Package"], kde=True)
+        plt.title("Salary Package Distribution")
+        _save("salary_distribution.png")
+        charts.append("salary_distribution.png")
+
+        plt.figure(figsize=(8, 5))
+        sns.boxplot(x="CollegeTier", y="Salary Package", data=placed)
+        plt.title("Salary Package by College Tier")
+        _save("salary_collegetier.png")
+        charts.append("salary_collegetier.png")
+
+        # 15. PAIRPLOT
+        print("\n" + "=" * 80)
+        print("15. PAIRPLOT")
+        print("=" * 80)
+
+        pair_cols = [
+            "CGPA",
+            "AptitudeTestScore",
+            "CodingTestScore",
+            "MockInterviewScore",
+            "PlacementStatus"
+        ]
+
+        pair_cols = [c for c in pair_cols if c in data.columns]
+
+        g = sns.pairplot(data[pair_cols], hue="PlacementStatus")
+        g.savefig(_chart_path("pairplot.png"))
+        plt.close("all")
+
+        charts.append("pairplot.png")
+
     return {
-        "charts": charts,
-        "missing": missing_df.to_dict(),
-        "duplicates": int(data.duplicated().sum())
+        "n_rows": data.shape[0],
+        "n_cols": data.shape[1],
+        "duplicate_count": int(data.duplicated().sum()),
+        "missing": missing.to_dict(),
+        "target_counts": data["PlacementStatus"].value_counts().to_dict(),
+        "charts": charts
     }

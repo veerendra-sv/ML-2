@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from load_data import get_data_summary
 from placement_eda import run_eda
+import traceback
 
 app = Flask(__name__)
 
@@ -38,7 +39,8 @@ def eda_page():
    except FileNotFoundError as e:
        error = str(e)
    except Exception as e:
-       error = f"Unexpected error: {e}"
+       traceback.print_exc()
+       error = str(e)
 
    return render_template(
        "eda.html",
