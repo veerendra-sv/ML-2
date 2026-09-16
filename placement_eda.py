@@ -1,330 +1,1052 @@
 import os
-import matplotlib
-matplotlib.use("Agg")
 
-import numpy as np
 import pandas as pd
-import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
-from load_data import load_data
-
-sns.set(style="whitegrid")
-
-CHARTS_DIR = os.path.join(os.path.dirname(__file__), "static", "charts")
 
 
-def _chart_path(filename: str) -> str:
-    os.makedirs(CHARTS_DIR, exist_ok=True)
-    return os.path.join(CHARTS_DIR, filename)
+# =========================================================
+# PATHS
+# =========================================================
+
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+DATASET_PATH = os.path.join(
+    BASE_DIR,
+    "C:\ML 2-1\PycharmProjects\PythonProject1\placement_predict_50k Dataset (3) 1.csv"
+)
+
+CHARTS_DIR = os.path.join(
+    BASE_DIR,
+    "static",
+    "charts"
+)
+
+os.makedirs(
+    CHARTS_DIR,
+    exist_ok=True
+)
 
 
-def _save(filename: str):
-    plt.tight_layout()
-    plt.savefig(_chart_path(filename), bbox_inches="tight", dpi=100)
-    plt.close("all")
+# =========================================================
+# LOAD DATASET
+# =========================================================
+
+def load_dataset():
+
+    if not os.path.exists(DATASET_PATH):
+
+        raise FileNotFoundError(
+            f"Dataset not found:\n{DATASET_PATH}"
+        )
+
+    return pd.read_csv(
+        DATASET_PATH
+    )
 
 
-def run_eda() -> dict:
-    data = load_data()
+# =========================================================
+# SAVE CHART
+# =========================================================
+
+def save_chart(
+    fig,
+    filename
+):
+
+    path = os.path.join(
+        CHARTS_DIR,
+        filename
+    )
+
+    fig.tight_layout()
+
+    fig.savefig(
+        path,
+        dpi=150,
+        bbox_inches="tight"
+    )
+
+    plt.close(fig)
+
+    return filename
+
+
+# =========================================================
+# MAIN EDA
+# =========================================================
+
+def run_eda():
+
+    df = load_dataset()
+
     charts = []
-    # 1. LOAD DATA
-    print("\n" + "=" * 80)
-    print("1. LOAD DATA")
-    print("=" * 80)
 
-    print("Shape:", data.shape)
-    print("\nFirst 5 Rows:")
-    print(data.head())
 
-    # 2. BASIC INFO / STRUCTURE
-    print("\n" + "=" * 80)
-    print("2. BASIC INFO / STRUCTURE")
-    print("=" * 80)
+    # =====================================================
+    # REMOVE OLD EDA CHARTS
+    # =====================================================
 
-    print("\nDataset Information:")
-    data.info()
+    for file in os.listdir(CHARTS_DIR):
 
-    print("\nColumn Data Types:")
-    print(data.dtypes)
+        if (
+            file.startswith("eda_")
+            and file.endswith(".png")
+        ):
 
-    print("\nDescriptive Statistics (Numeric Columns):")
-    print(data.describe())
+            try:
 
-    print("\nDescriptive Statistics (Categorical Columns):")
-    print(data.describe(include=["object"]))
+                os.remove(
+                    os.path.join(
+                        CHARTS_DIR,
+                        file
+                    )
+                )
 
-    # 3. MISSING VALUES
-    print("\n" + "=" * 80)
-    print("3. MISSING VALUES")
-    print("=" * 80)
+            except Exception:
+                pass
 
-    missing = data.isnull().sum()
-    missing_pct = (missing / len(data)) * 100
 
-    missing_df = pd.DataFrame({
-        "missing_count": missing,
-        "missing_pct": missing_pct
-    })
+    # =====================================================
+    # BASIC DATASET INFORMATION
+    # =====================================================
 
-    missing_df = missing_df[
-        missing_df["missing_count"] > 0
-    ].sort_values(by="missing_count", ascending=False)
+    rows = int(
+        df.shape[0]
+    )
 
-    print(missing_df)
+    columns = int(
+        df.shape[1]
+    )
 
-    if not missing_df.empty:
-        plt.figure(figsize=(10, 5), dpi=100)
-        sns.barplot(x=missing_df.index, y=missing_df["missing_pct"])
-        plt.xticks(rotation=45, ha="right")
-        plt.ylabel("Missing %")
-        plt.title("Missing values by column")
-        _save("missing_values.png")
-        charts.append("missing_values.png")
+    duplicate_rows = int(
+        df.duplicated().sum()
+    )
 
-    # 4. DUPLICATES
-    print("\n" + "=" * 80)
-    print("4. DUPLICATE ROWS")
-    print("=" * 80)
-    print("Duplicate rows:", data.duplicated().sum())
 
-    # 5. TARGET VARIABLE DISTRIBUTION
-    print("\n" + "=" * 80)
-    print("5. TARGET VARIABLE - Placementstatus")
-    print("=" * 80)
-    print(data["PlacementStatus"].value_counts())
+    # =====================================================
+    # MISSING VALUES
+    # =====================================================
 
-    plt.figure(dpi=125)
-    sns.countplot(x="PlacementStatus", data=data)
-    plt.xlabel("PlacementStatus (0 = Not Placed, 1 = Placed)")
-    plt.ylabel("Count")
-    plt.title("Placement Status Distribution")
-    _save("placement_status.png")
-    charts.append("placement_status.png")
+    missing_series = (
+        df.isnull()
+        .sum()
+        .sort_values(
+            ascending=False
+        )
+    )
 
-    # 6. NUMERIC DISTRIBUTION
-    print("\n" + "=" * 80)
-    print("6. NUMERIC DISTRIBUTION")
-    print("=" * 80)
-
-    hist_cols = [
-        "CGPA",
-        "Attendencepercent",
-        "AptitudeTestScore",
-        "softSkillsRating",
-        "CodingTestScore",
-        "MockInterviewScore"
+    missing_series = missing_series[
+        missing_series > 0
     ]
 
-    hist_cols = [c for c in hist_cols if c in data.columns]
 
-    fig = data[hist_cols].hist(figsize=(14, 10), bins=20)
+    missing_values = [
 
-    plt.tight_layout()
-    plt.savefig(_chart_path("numeric_distribution.png"), dpi=100)
-    plt.close("all")
+        {
+            "column": str(column),
 
-    charts.append("numeric_distribution.png")
+            "count": int(count)
+        }
 
-    plt.figure(dpi=125)
-    sns.histplot(data["CGPA"], kde=True)
-    plt.axvline(x=np.mean(data["CGPA"]), color="green", linestyle="--", label="Mean")
-    plt.legend()
-    plt.title("CGPA Distribution with Mean")
-    _save("cgpa_distribution.png")
-    charts.append("cgpa_distribution.png")
+        for column, count
+        in missing_series.items()
 
-    # 7. OUTLIER DETECTION
-    print("\n" + "=" * 80)
-    print("7. OUTLIER DETECTION")
-    print("=" * 80)
+    ]
 
-    box_cols = [
+
+    # =====================================================
+    # 1. MISSING VALUES
+    # =====================================================
+
+    if not missing_series.empty:
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        missing_series.head(10).plot(
+            kind="bar",
+            ax=ax
+        )
+
+        ax.set_title(
+            "Missing Values by Column"
+        )
+
+        ax.set_xlabel(
+            "Column"
+        )
+
+        ax.set_ylabel(
+            "Missing Count"
+        )
+
+        ax.tick_params(
+            axis="x",
+            rotation=45
+        )
+
+        filename = save_chart(
+            fig,
+            "eda_01_missing_values.png"
+        )
+
+        charts.append({
+
+            "title":
+                "Missing Values",
+
+            "filename":
+                filename
+
+        })
+
+
+    # =====================================================
+    # PLACEMENT STATUS
+    # =====================================================
+
+    placement_counts = {}
+
+    if "PlacementStatus" in df.columns:
+
+        placement_counts = {
+
+            str(index):
+                int(value)
+
+            for index, value
+            in df[
+                "PlacementStatus"
+            ]
+            .value_counts()
+            .items()
+
+        }
+
+
+    # =====================================================
+    # 2. PLACEMENT STATUS DISTRIBUTION
+    # =====================================================
+
+    if "PlacementStatus" in df.columns:
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        counts = (
+            df[
+                "PlacementStatus"
+            ]
+            .value_counts()
+            .sort_index()
+        )
+
+        counts.plot(
+            kind="bar",
+            ax=ax
+        )
+
+        ax.set_title(
+            "Placement Status Distribution"
+        )
+
+        ax.set_xlabel(
+            "Placement Status"
+        )
+
+        ax.set_ylabel(
+            "Number of Students"
+        )
+
+        filename = save_chart(
+            fig,
+            "eda_02_placement_status.png"
+        )
+
+        charts.append({
+
+            "title":
+                "Placement Status Distribution",
+
+            "filename":
+                filename
+
+        })
+
+
+    # =====================================================
+    # 3. SALARY PACKAGE DISTRIBUTION
+    # =====================================================
+
+    if "Salary Package" in df.columns:
+
+        salary = pd.to_numeric(
+            df[
+                "Salary Package"
+            ],
+            errors="coerce"
+        ).dropna()
+
+        if not salary.empty:
+
+            fig, ax = plt.subplots(
+                figsize=(8, 5)
+            )
+
+            ax.hist(
+                salary,
+                bins=30
+            )
+
+            ax.set_title(
+                "Salary Package Distribution"
+            )
+
+            ax.set_xlabel(
+                "Salary Package"
+            )
+
+            ax.set_ylabel(
+                "Frequency"
+            )
+
+            filename = save_chart(
+                fig,
+                "eda_03_salary_distribution.png"
+            )
+
+            charts.append({
+
+                "title":
+                    "Salary Package Distribution",
+
+                "filename":
+                    filename
+
+            })
+
+
+    # =====================================================
+    # NUMERICAL DISTRIBUTIONS
+    # =====================================================
+
+    distribution_features = [
+
+        (
+            "CGPA",
+            "CGPA Distribution"
+        ),
+
+        (
+            "AptitudeTestScore",
+            "Aptitude Test Score Distribution"
+        ),
+
+        (
+            "CodingTestScore",
+            "Coding Test Score Distribution"
+        ),
+
+        (
+            "MockInterviewScore",
+            "Mock Interview Score Distribution"
+        ),
+
+        (
+            "SoftSkillsRating",
+            "Soft Skills Rating Distribution"
+        ),
+
+        (
+            "AttendancePercent",
+            "Attendance Distribution"
+        )
+
+    ]
+
+
+    # =====================================================
+    # 4 - 9. FEATURE DISTRIBUTIONS
+    # =====================================================
+
+    chart_number = 4
+
+    for column, title in distribution_features:
+
+        if column not in df.columns:
+            continue
+
+        values = pd.to_numeric(
+            df[column],
+            errors="coerce"
+        ).dropna()
+
+        if values.empty:
+            continue
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        ax.hist(
+            values,
+            bins=25
+        )
+
+        ax.set_title(
+            title
+        )
+
+        ax.set_xlabel(
+            column
+        )
+
+        ax.set_ylabel(
+            "Frequency"
+        )
+
+        filename = save_chart(
+            fig,
+            f"eda_{chart_number:02d}_{column}.png"
+        )
+
+        charts.append({
+
+            "title":
+                title,
+
+            "filename":
+                filename
+
+        })
+
+        chart_number += 1
+
+
+    # =====================================================
+    # NUMERICAL PAIR HELPER
+    # =====================================================
+
+    def numeric_pair(
+        x,
+        y
+    ):
+
+        if x not in df.columns:
+            return None, None
+
+        if y not in df.columns:
+            return None, None
+
+        x_values = pd.to_numeric(
+            df[x],
+            errors="coerce"
+        )
+
+        y_values = pd.to_numeric(
+            df[y],
+            errors="coerce"
+        )
+
+        valid = (
+            x_values.notna()
+            &
+            y_values.notna()
+        )
+
+        return (
+            x_values[valid],
+            y_values[valid]
+        )
+
+
+    # =====================================================
+    # 10. CGPA VS SALARY
+    # =====================================================
+
+    x, y = numeric_pair(
         "CGPA",
-        "Attendencepercent",
+        "Salary Package"
+    )
+
+    if x is not None and len(x) > 0:
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        ax.scatter(
+            x,
+            y,
+            alpha=0.35,
+            s=12
+        )
+
+        ax.set_title(
+            "CGPA vs Salary Package"
+        )
+
+        ax.set_xlabel(
+            "CGPA"
+        )
+
+        ax.set_ylabel(
+            "Salary Package"
+        )
+
+        filename = save_chart(
+            fig,
+            "eda_10_cgpa_vs_salary.png"
+        )
+
+        charts.append({
+
+            "title":
+                "CGPA vs Salary Package",
+
+            "filename":
+                filename
+
+        })
+
+
+    # =====================================================
+    # 11. APTITUDE VS SALARY
+    # =====================================================
+
+    x, y = numeric_pair(
         "AptitudeTestScore",
-        "softSkillsRating",
+        "Salary Package"
+    )
+
+    if x is not None and len(x) > 0:
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        ax.scatter(
+            x,
+            y,
+            alpha=0.35,
+            s=12
+        )
+
+        ax.set_title(
+            "Aptitude Score vs Salary Package"
+        )
+
+        ax.set_xlabel(
+            "Aptitude Test Score"
+        )
+
+        ax.set_ylabel(
+            "Salary Package"
+        )
+
+        filename = save_chart(
+            fig,
+            "eda_11_aptitude_vs_salary.png"
+        )
+
+        charts.append({
+
+            "title":
+                "Aptitude Score vs Salary Package",
+
+            "filename":
+                filename
+
+        })
+
+
+    # =====================================================
+    # 12. CODING VS SALARY
+    # =====================================================
+
+    x, y = numeric_pair(
         "CodingTestScore",
+        "Salary Package"
+    )
+
+    if x is not None and len(x) > 0:
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        ax.scatter(
+            x,
+            y,
+            alpha=0.35,
+            s=12
+        )
+
+        ax.set_title(
+            "Coding Score vs Salary Package"
+        )
+
+        ax.set_xlabel(
+            "Coding Test Score"
+        )
+
+        ax.set_ylabel(
+            "Salary Package"
+        )
+
+        filename = save_chart(
+            fig,
+            "eda_12_coding_vs_salary.png"
+        )
+
+        charts.append({
+
+            "title":
+                "Coding Score vs Salary Package",
+
+            "filename":
+                filename
+
+        })
+
+
+    # =====================================================
+    # 13. MOCK INTERVIEW VS SALARY
+    # =====================================================
+
+    x, y = numeric_pair(
         "MockInterviewScore",
         "Salary Package"
-    ]
-
-    box_cols = [c for c in box_cols if c in data.columns]
-
-    plt.figure(figsize=(14, 6))
-    sns.boxplot(data=data[box_cols], color="skyblue")
-
-    plt.title("Boxplots of Numerical Features", fontsize=14)
-    plt.xticks(rotation=45)
-    _save("outlier_detection.png")
-    charts.append("outlier_detection.png")
-
-    # 8. CORRELATION ANALYSIS
-    print("\n" + "=" * 80)
-    print("8. CORRELATION ANALYSIS")
-    print("=" * 80)
-
-    corr = data.select_dtypes(include=[np.number]).corr()
-    print(np.round(corr, 2))
-
-    plt.figure(figsize=(16, 12), dpi=100)
-    sns.heatmap(
-        np.round(corr, 2),
-        annot=True,
-        cmap="coolwarm",
-        fmt=".2f"
     )
-    plt.title("Correlation Heatmap")
-    _save("correlation_heatmap.png")
-    charts.append("correlation_heatmap.png")
 
-    # 9. RELATIONSHIP PLOTS
-    print("\n" + "=" * 80)
-    print("9. RELATIONSHIP PLOTS")
-    print("=" * 80)
+    if x is not None and len(x) > 0:
 
-    plt.figure(figsize=(8, 5))
-    sns.regplot(x="CGPA", y="Salary Package", data=data, scatter_kws={"alpha": 0.6})
-    plt.title("CGPA vs Salary Package")
-    _save("cgpa_salary.png")
-    charts.append("cgpa_salary.png")
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
 
-    plt.figure(figsize=(8, 5))
-    sns.regplot(x="AptitudeTestScore", y="CodingTestScore", data=data, scatter_kws={"alpha": 0.6})
-    plt.title("Aptitude Test Score vs Coding Test Score")
-    _save("aptitude_coding.png")
-    charts.append("aptitude_coding.png")
+        ax.scatter(
+            x,
+            y,
+            alpha=0.35,
+            s=12
+        )
 
-    # 10. CATEGORICAL FEATURE COUNTS
-    print("\n" + "=" * 80)
-    print("10. CATEGORICAL FEATURE COUNTS")
-    print("=" * 80)
+        ax.set_title(
+            "Mock Interview Score vs Salary Package"
+        )
 
-    cat_cols = [
-        "Gender",
-        "City",
-        "CollegeTier",
-        "Stream",
-        "Specialisation",
-        "Hostel",
-        "HistoryOfBacklogs",
-        "CGPA_Tier"
-    ]
+        ax.set_xlabel(
+            "Mock Interview Score"
+        )
 
-    cat_cols = [c for c in cat_cols if c in data.columns]
+        ax.set_ylabel(
+            "Salary Package"
+        )
 
-    for col in cat_cols:
-        plt.figure(figsize=(8, 5))
-        sns.countplot(x=col, data=data)
-        plt.xticks(rotation=45)
-        plt.title(f"{col} Count")
+        filename = save_chart(
+            fig,
+            "eda_13_mock_vs_salary.png"
+        )
 
-        filename = f"{col}_count.png"
-        _save(filename)
-        charts.append(filename)
+        charts.append({
 
-        # 11. GENDER VS PLACEMENT STATUS
-        print("\n" + "=" * 80)
-        print("11. GENDER VS PLACEMENT STATUS")
-        print("=" * 80)
+            "title":
+                "Mock Interview Score vs Salary Package",
 
-        plt.figure(figsize=(8, 5))
-        sns.countplot(x="Gender", hue="PlacementStatus", data=data)
-        plt.title("Gender vs Placement Status")
-        _save("gender_vs_placement.png")
-        charts.append("gender_vs_placement.png")
+            "filename":
+                filename
 
-        # 12. COLLEGE TIER / STREAM VS PLACEMENT STATUS
-        print("\n" + "=" * 80)
-        print("12. COLLEGE TIER / STREAM VS PLACEMENT STATUS")
-        print("=" * 80)
+        })
 
-        plt.figure(figsize=(8, 5))
-        sns.countplot(x="CollegeTier", hue="PlacementStatus", data=data)
-        plt.title("College Tier vs Placement Status")
-        _save("collegetier_vs_placement.png")
-        charts.append("collegetier_vs_placement.png")
 
-        plt.figure(figsize=(10, 5))
-        sns.countplot(x="Stream", hue="PlacementStatus", data=data)
-        plt.xticks(rotation=45)
-        plt.title("Stream vs Placement Status")
-        _save("stream_vs_placement.png")
-        charts.append("stream_vs_placement.png")
+    # =====================================================
+    # 14. CGPA VS PLACEMENT STATUS
+    # =====================================================
 
-        # 13. SGPA TREND ACROSS SEMESTERS
-        print("\n" + "=" * 80)
-        print("13. SGPA TREND ACROSS SEMESTERS")
-        print("=" * 80)
+    if (
+        "CGPA" in df.columns
+        and
+        "PlacementStatus" in df.columns
+    ):
 
-        sgpa_cols = [
-            "SGPA_Sem1",
-            "SGPA_Sem2",
-            "SGPA_Sem3",
-            "SGPA_Sem4",
-            "SGPA_Sem5",
-            "SGPA_Sem6",
-            "SGPA_Sem7",
-            "SGPA_Sem8"
-        ]
+        temp = df[
+            [
+                "CGPA",
+                "PlacementStatus"
+            ]
+        ].copy()
 
-        sgpa_cols = [c for c in sgpa_cols if c in data.columns]
+        temp[
+            "CGPA"
+        ] = pd.to_numeric(
+            temp["CGPA"],
+            errors="coerce"
+        )
 
-        avg_sgpa = data[sgpa_cols].mean()
+        temp = temp.dropna()
 
-        plt.figure(figsize=(10, 5))
-        plt.plot(sgpa_cols, avg_sgpa, marker="o")
-        plt.xlabel("Semester")
-        plt.ylabel("Average SGPA")
-        plt.title("Average SGPA Across Semesters")
-        plt.grid(True)
-        _save("sgpa_trend.png")
-        charts.append("sgpa_trend.png")
+        groups = []
 
-        # 14. SALARY PACKAGE ANALYSIS
-        print("\n" + "=" * 80)
-        print("14. SALARY PACKAGE ANALYSIS")
-        print("=" * 80)
+        labels = []
 
-        placed = data[data["PlacementStatus"] == 1]
+        for status in sorted(
+            temp[
+                "PlacementStatus"
+            ].unique()
+        ):
 
-        plt.figure(figsize=(8, 5))
-        sns.histplot(placed["Salary Package"], kde=True)
-        plt.title("Salary Package Distribution")
-        _save("salary_distribution.png")
-        charts.append("salary_distribution.png")
+            values = temp[
+                temp[
+                    "PlacementStatus"
+                ] == status
+            ][
+                "CGPA"
+            ].values
 
-        plt.figure(figsize=(8, 5))
-        sns.boxplot(x="CollegeTier", y="Salary Package", data=placed)
-        plt.title("Salary Package by College Tier")
-        _save("salary_collegetier.png")
-        charts.append("salary_collegetier.png")
+            if len(values) > 0:
 
-        # 15. PAIRPLOT
-        print("\n" + "=" * 80)
-        print("15. PAIRPLOT")
-        print("=" * 80)
+                groups.append(
+                    values
+                )
 
-        pair_cols = [
-            "CGPA",
-            "AptitudeTestScore",
-            "CodingTestScore",
-            "MockInterviewScore",
-            "PlacementStatus"
-        ]
+                labels.append(
+                    str(status)
+                )
 
-        pair_cols = [c for c in pair_cols if c in data.columns]
+        if groups:
 
-        g = sns.pairplot(data[pair_cols], hue="PlacementStatus")
-        g.savefig(_chart_path("pairplot.png"))
-        plt.close("all")
+            fig, ax = plt.subplots(
+                figsize=(8, 5)
+            )
 
-        charts.append("pairplot.png")
+            ax.boxplot(
+                groups
+            )
+
+            ax.set_xticks(
+                range(
+                    1,
+                    len(labels) + 1
+                )
+            )
+
+            ax.set_xticklabels(
+                labels
+            )
+
+            ax.set_title(
+                "CGPA vs Placement Status"
+            )
+
+            ax.set_xlabel(
+                "Placement Status"
+            )
+
+            ax.set_ylabel(
+                "CGPA"
+            )
+
+            filename = save_chart(
+                fig,
+                "eda_14_cgpa_vs_placement.png"
+            )
+
+            charts.append({
+
+                "title":
+                    "CGPA vs Placement Status",
+
+                "filename":
+                    filename
+
+            })
+
+
+    # =====================================================
+    # 15. CODING VS PLACEMENT STATUS
+    # =====================================================
+
+    if (
+        "CodingTestScore" in df.columns
+        and
+        "PlacementStatus" in df.columns
+    ):
+
+        temp = df[
+            [
+                "CodingTestScore",
+                "PlacementStatus"
+            ]
+        ].copy()
+
+        temp[
+            "CodingTestScore"
+        ] = pd.to_numeric(
+            temp[
+                "CodingTestScore"
+            ],
+            errors="coerce"
+        )
+
+        temp = temp.dropna()
+
+        groups = []
+
+        labels = []
+
+        for status in sorted(
+            temp[
+                "PlacementStatus"
+            ].unique()
+        ):
+
+            values = temp[
+                temp[
+                    "PlacementStatus"
+                ] == status
+            ][
+                "CodingTestScore"
+            ].values
+
+            if len(values) > 0:
+
+                groups.append(
+                    values
+                )
+
+                labels.append(
+                    str(status)
+                )
+
+        if groups:
+
+            fig, ax = plt.subplots(
+                figsize=(8, 5)
+            )
+
+            ax.boxplot(
+                groups
+            )
+
+            ax.set_xticks(
+                range(
+                    1,
+                    len(labels) + 1
+                )
+            )
+
+            ax.set_xticklabels(
+                labels
+            )
+
+            ax.set_title(
+                "Coding Score vs Placement Status"
+            )
+
+            ax.set_xlabel(
+                "Placement Status"
+            )
+
+            ax.set_ylabel(
+                "Coding Test Score"
+            )
+
+            filename = save_chart(
+                fig,
+                "eda_15_coding_vs_placement.png"
+            )
+
+            charts.append({
+
+                "title":
+                    "Coding Score vs Placement Status",
+
+                "filename":
+                    filename
+
+            })
+
+
+    # =====================================================
+    # 16. CORRELATION HEATMAP
+    # =====================================================
+
+    numeric_df = df.select_dtypes(
+        include=np.number
+    )
+
+    if numeric_df.shape[1] > 1:
+
+        correlation = (
+            numeric_df.corr()
+        )
+
+        fig_width = max(
+            12,
+            correlation.shape[1] * 0.55
+        )
+
+        fig_height = max(
+            9,
+            correlation.shape[0] * 0.55
+        )
+
+        fig, ax = plt.subplots(
+            figsize=(
+                fig_width,
+                fig_height
+            )
+        )
+
+        image = ax.imshow(
+            correlation,
+            cmap="coolwarm",
+            vmin=-1,
+            vmax=1,
+            aspect="auto"
+        )
+
+        ax.set_title(
+            "Correlation Heatmap",
+            fontsize=14,
+            pad=15
+        )
+
+        ax.set_xticks(
+            range(
+                len(
+                    correlation.columns
+                )
+            )
+        )
+
+        ax.set_yticks(
+            range(
+                len(
+                    correlation.columns
+                )
+            )
+        )
+
+        ax.set_xticklabels(
+            correlation.columns,
+            rotation=90,
+            fontsize=7
+        )
+
+        ax.set_yticklabels(
+            correlation.columns,
+            fontsize=7
+        )
+
+
+        # =================================================
+        # CORRELATION VALUES
+        # =================================================
+
+        for i in range(
+            len(
+                correlation.columns
+            )
+        ):
+
+            for j in range(
+                len(
+                    correlation.columns
+                )
+            ):
+
+                value = correlation.iloc[
+                    i,
+                    j
+                ]
+
+                ax.text(
+                    j,
+                    i,
+                    f"{value:.2f}",
+                    ha="center",
+                    va="center",
+                    fontsize=6
+                )
+
+
+        fig.colorbar(
+            image,
+            ax=ax,
+            fraction=0.046,
+            pad=0.04
+        )
+
+        filename = save_chart(
+            fig,
+            "eda_16_correlation_heatmap.png"
+        )
+
+        charts.append({
+
+            "title":
+                "Correlation Heatmap",
+
+            "filename":
+                filename
+
+        })
+
+
+    # =====================================================
+    # FINAL RESULT
+    # =====================================================
 
     return {
-        "n_rows": data.shape[0],
-        "n_cols": data.shape[1],
-        "duplicate_count": int(data.duplicated().sum()),
-        "missing": missing.to_dict(),
-        "target_counts": data["PlacementStatus"].value_counts().to_dict(),
-        "charts": charts
+
+        "rows":
+            rows,
+
+        "columns":
+            columns,
+
+        "duplicate_rows":
+            duplicate_rows,
+
+        "missing_values":
+            missing_values,
+
+        "placement_counts":
+            placement_counts,
+
+        "charts":
+            charts
+
     }
+
+
+# =========================================================
+# TEST
+# =========================================================
+
+if __name__ == "__main__":
+
+    result = run_eda()
+
+    print(
+        "\nEDA completed successfully."
+    )
+
+    print(
+        "Total charts generated:",
+        len(result["charts"])
+    )
+
+    for chart in result["charts"]:
+
+        print(
+            "-",
+            chart["title"]
+        )
