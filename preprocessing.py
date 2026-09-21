@@ -36,13 +36,16 @@ def preprocess_data():
         data.duplicated().sum()
     )
 
-    if duplicate_count > 0:
+    print("\nDuplicate rows:", duplicate_count)
 
+    if duplicate_count > 0:
         data = data.drop_duplicates()
 
     duplicates_after = int(
         data.duplicated().sum()
     )
+
+    print("Duplicates after removal:", duplicates_after)
 
     # =====================================================
     # 3. IDENTIFY COLUMNS
@@ -79,6 +82,12 @@ def preprocess_data():
         for col in categorical_columns
         if col not in exclude_columns
     ]
+
+    print("\nNumerical features:")
+    print(numeric_columns)
+
+    print("\nCategorical features:")
+    print(categorical_columns)
 
     # =====================================================
     # 5. HANDLE NUMERICAL MISSING VALUES
@@ -160,10 +169,12 @@ def preprocess_data():
         if col in data.columns
     ]
 
+    # Features
     X = data.drop(
         columns=columns_to_remove
     )
 
+    # Target
     y = data[target]
 
     # =====================================================
@@ -182,11 +193,18 @@ def preprocess_data():
         stratify=y
     )
 
+    print("\nTraining rows:", len(X_train))
+    print("Testing rows:", len(X_test))
+
     # =====================================================
     # 9. PREPROCESSING PIPELINE
     # =====================================================
 
     transformers = []
+
+    # -----------------------------------------------------
+    # NUMERICAL FEATURES → STANDARD SCALER
+    # -----------------------------------------------------
 
     if numeric_columns:
 
@@ -197,6 +215,10 @@ def preprocess_data():
                 numeric_columns
             )
         )
+
+    # -----------------------------------------------------
+    # CATEGORICAL FEATURES → ONE HOT ENCODING
+    # -----------------------------------------------------
 
     if categorical_columns:
 
@@ -210,6 +232,7 @@ def preprocess_data():
             )
         )
 
+    # Create preprocessing pipeline
     preprocessor = ColumnTransformer(
         transformers=transformers
     )
@@ -266,7 +289,135 @@ def preprocess_data():
     )
 
     # =====================================================
-    # 13. RETURN ORIGINAL RESULTS
+    # 13. CREATE ONE PREPROCESSED DATASET
+    # =====================================================
+
+    print(
+        "\n========== CREATING SINGLE PREPROCESSED DATASET =========="
+    )
+
+    # -----------------------------------------------------
+    # Convert sparse matrices to normal arrays
+    # -----------------------------------------------------
+
+    if hasattr(X_train_processed, "toarray"):
+
+        X_train_array = X_train_processed.toarray()
+
+    else:
+
+        X_train_array = X_train_processed
+
+    if hasattr(X_test_processed, "toarray"):
+
+        X_test_array = X_test_processed.toarray()
+
+    else:
+
+        X_test_array = X_test_processed
+
+    # -----------------------------------------------------
+    # GET FEATURE NAMES
+    # -----------------------------------------------------
+
+    feature_names = (
+        preprocessor.get_feature_names_out()
+    )
+
+    # -----------------------------------------------------
+    # CREATE TRAINING DATAFRAME
+    # -----------------------------------------------------
+
+    X_train_df = pd.DataFrame(
+        X_train_array,
+        columns=feature_names,
+        index=X_train.index
+    )
+
+    # -----------------------------------------------------
+    # CREATE TEST DATAFRAME
+    # -----------------------------------------------------
+
+    X_test_df = pd.DataFrame(
+        X_test_array,
+        columns=feature_names,
+        index=X_test.index
+    )
+
+    # -----------------------------------------------------
+    # ADD TARGET TO TRAINING DATA
+    # -----------------------------------------------------
+
+    X_train_df["PlacementStatus"] = y_train
+
+    # -----------------------------------------------------
+    # ADD TARGET TO TEST DATA
+    # -----------------------------------------------------
+
+    X_test_df["PlacementStatus"] = y_test
+
+    # -----------------------------------------------------
+    # COMBINE TRAIN + TEST
+    # -----------------------------------------------------
+
+    preprocessed_dataset = pd.concat(
+        [
+            X_train_df,
+            X_test_df
+        ]
+    )
+
+    # -----------------------------------------------------
+    # RESTORE ORIGINAL ROW ORDER
+    # -----------------------------------------------------
+
+    preprocessed_dataset = (
+        preprocessed_dataset
+        .sort_index()
+        .reset_index(drop=True)
+    )
+
+    # =====================================================
+    # 14. SAVE SINGLE CSV
+    # =====================================================
+
+    output_file = "preprocessed_placement_dataset.csv"
+
+    preprocessed_dataset.to_csv(
+        output_file,
+        index=False
+    )
+
+    # =====================================================
+    # 15. DISPLAY FINAL INFORMATION
+    # =====================================================
+
+    print(
+        "\n========== PREPROCESSED DATASET SAVED =========="
+    )
+
+    print(
+        "File:",
+        output_file
+    )
+
+    print(
+        "Shape:",
+        preprocessed_dataset.shape
+    )
+
+    print(
+        "Rows:",
+        preprocessed_dataset.shape[0]
+    )
+
+    print(
+        "Columns:",
+        preprocessed_dataset.shape[1]
+    )
+
+    # =====================================================
+    # 16. RETURN RESULTS
     # =====================================================
 
     return (
