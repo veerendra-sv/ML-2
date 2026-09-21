@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Model Training | Placement Prediction Project{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1 class="page-title">Model Training & Evaluation</h1>
+    <p class="page-desc">
+        Train and compare machine learning models for student placement prediction.
+    </p>
+</div>
+
+<!-- Model Training Buttons -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Machine Learning Models</h3>
+        <span class="badge badge-primary">2 Models</span>
+    </div>
+
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+
+        <a href="{{ url_for('run_logistic_regression') }}"
+           class="btn btn-primary">
+            Run Logistic Regression
+        </a>
+
+        <a href="{{ url_for('run_random_forest') }}"
+           class="btn btn-outline">
+            Run Random Forest
+        </a>
+
+    </div>
+</div>
+
+
+{% if results %}
+
+<!-- Comparison -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Model Performance Comparison</h3>
+    </div>
+
+    <div style="overflow-x: auto;">
+
+        <table style="width: 100%; border-collapse: collapse;">
+
+            <thead>
+                <tr>
+                    <th style="padding: 12px; text-align: left;">
+                        Model
+                    </th>
+
+                    <th style="padding: 12px; text-align: left;">
+                        Train Accuracy
+                    </th>
+
+                    <th style="padding: 12px; text-align: left;">
+                        Test Accuracy
+                    </th>
+
+                    <th style="padding: 12px; text-align: left;">
+                        Precision
+                    </th>
+
+                    <th style="padding: 12px; text-align: left;">
+                        Recall
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for model in results %}
+
+                <tr>
+
+                    <td style="padding: 12px;">
+                        <strong>{{ model.name }}</strong>
+                    </td>
+
+                    <td style="padding: 12px;">
+                        {{ model.train_accuracy }}
+                    </td>
+
+                    <td style="padding: 12px;">
+                        {{ model.test_accuracy }}
+                    </td>
+
+                    <td style="padding: 12px;">
+                        {{ model.precision }}
+                    </td>
+
+                    <td style="padding: 12px;">
+                        {{ model.recall }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+</div>
+
+
+<!-- Detailed Results -->
+
+{% for model in results %}
+
+<div class="card">
+
+    <div class="card-header">
+        <h3 class="card-title">
+            {{ model.name }}
+        </h3>
+
+        <span class="badge badge-primary">
+            Test Accuracy: {{ model.test_accuracy }}
+        </span>
+    </div>
+
+
+    <!-- Accuracy -->
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <span class="stat-label">
+                Training Accuracy
+            </span>
+
+            <span class="stat-value">
+                {{ model.train_accuracy }}
+            </span>
+        </div>
+
+
+        <div class="stat-card">
+            <span class="stat-label">
+                Testing Accuracy
+            </span>
+
+            <span class="stat-value">
+                {{ model.test_accuracy }}
+            </span>
+        </div>
+
+
+        <div class="stat-card">
+            <span class="stat-label">
+                Precision
+            </span>
+
+            <span class="stat-value">
+                {{ model.precision }}
+            </span>
+        </div>
+
+
+        <div class="stat-card">
+            <span class="stat-label">
+                Recall
+            </span>
+
+            <span class="stat-value">
+                {{ model.recall }}
+            </span>
+        </div>
+
+    </div>
+
+
+    <!-- Confusion Matrix -->
+
+    <h4 style="margin-top: 25px;">
+        Confusion Matrix
+    </h4>
+
+    <pre style="
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+    ">{{ model.confusion_matrix }}</pre>
+
+
+    <!-- Classification Report -->
+
+    <h4 style="margin-top: 25px;">
+        Classification Report
+    </h4>
+
+    <pre style="
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+    ">{{ model.classification_report }}</pre>
+
+
+    {% if model.feature_importance %}
+
+    <h4 style="margin-top: 25px;">
+        Random Forest Feature Importance
+    </h4>
+
+    <table style="width: 100%; border-collapse: collapse;">
+
+        <thead>
+            <tr>
+                <th style="padding: 10px; text-align: left;">
+                    Feature
+                </th>
+
+                <th style="padding: 10px; text-align: left;">
+                    Importance
+                </th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for item in model.feature_importance %}
+
+            <tr>
+
+                <td style="padding: 10px;">
+                    {{ item.feature }}
+                </td>
+
+                <td style="padding: 10px;">
+                    {{ item.importance }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% endif %}
+
+</div>
+
+{% endfor %}
+
+{% endif %}
+
+{% endblock %}
