@@ -159,7 +159,7 @@ def logistic_regression():
         result = run_logistic_regression()
 
         return render_template(
-            "logistic_regression.html",
+            "logistic-regression.html",
             active="logistic-regression",
             logistic=result,
             error=None
@@ -168,7 +168,7 @@ def logistic_regression():
     except Exception as e:
 
         return render_template(
-            "logistic_regression.html",
+            "logistic-regression.html",
             active="logistic-regression",
             logistic=None,
             error=str(e)

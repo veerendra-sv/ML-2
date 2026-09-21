@@ -2,11 +2,16 @@
     box-sizing: border-box;
 }
 
+html {
+    overflow-x: hidden;
+}
+
 body {
     margin: 0;
     font-family: "Segoe UI", Arial, sans-serif;
     background-color: #f4f6f8;
     color: #222;
+    overflow-x: hidden;
 }
 
 .topbar {
@@ -22,11 +27,13 @@ body {
 
 .layout {
     display: flex;
+    width: 100%;
     min-height: calc(100vh - 60px);
 }
 
 .sidebar {
     width: 240px;
+    flex: 0 0 240px;
     background-color: #26466f;
     padding-top: 10px;
 }
@@ -35,6 +42,39 @@ body {
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+.sidebar-title {
+    padding: 10px 20px 8px;
+    color: #b9cbe0;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.sidebar > ul > li > a:not(.menu-item) {
+    display: block;
+    padding: 14px 20px;
+    color: #e5ecf5;
+    cursor: pointer;
+    border-left: 4px solid transparent;
+    text-decoration: none;
+}
+
+.sidebar > ul > li > a:not(.menu-item):hover:not(.disabled) {
+    background-color: #33578a;
+}
+
+.sidebar > ul > li > a:not(.menu-item).active {
+    background-color: #3d6aa3;
+    border-left-color: #ffffff;
+    font-weight: bold;
+}
+
+.sidebar > ul > li > a.disabled {
+    color: #8ba0bd;
+    cursor: not-allowed;
 }
 
 .menu-item {
@@ -61,9 +101,94 @@ body {
     cursor: not-allowed;
 }
 
+.tree-menu details {
+    margin: 0;
+}
+
+.tree-menu summary {
+    display: block;
+    padding: 14px 20px;
+    color: #e5ecf5;
+    cursor: pointer;
+    list-style: none;
+}
+
+.tree-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.tree-menu summary::before {
+    content: ">";
+    display: inline-block;
+    width: 16px;
+    transition: transform 0.15s ease;
+}
+
+.tree-menu details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.tree-menu summary:hover {
+    background-color: #33578a;
+}
+
+.tree-submenu {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 6px 16px;
+}
+
+.tree-submenu a {
+    display: block;
+    padding: 9px 20px;
+    color: #dbe7f5;
+    text-decoration: none;
+    border-left: 4px solid transparent;
+}
+
+.tree-submenu a:hover,
+.tree-submenu a.active {
+    background-color: #33578a;
+    color: #ffffff;
+}
+
+.tree-submenu a.active {
+    border-left-color: #ffffff;
+    font-weight: bold;
+}
+
 .content {
     flex: 1;
     padding: 24px 32px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.content h1,
+.content h2,
+.content h3,
+.content p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.card {
+    max-width: 100%;
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+.content table {
+    max-width: 100%;
+    border-collapse: collapse;
+}
+
+.content th,
+.content td {
+    padding: 8px 12px;
+    text-align: left;
+}
 }
 
 .hidden {
